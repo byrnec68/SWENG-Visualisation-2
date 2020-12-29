@@ -20,7 +20,7 @@ async function mainFun(username){
     languageTreeMap(repoData, username)
 
     //Social Graph
-    //parseSocialData(repoData)
+    parseSocialData(repoData)
 }
 
 /*
@@ -97,6 +97,49 @@ async function languageTreeMap(userReposData, user) {
     D3_TreeMap(children);
   }
 
+  async function parseSocialData(rawData) {
+    let arrRepos = [];
+    let myNodes = []
+    let myLinks = []
+  
+    for (let i = 0; i < rawData.length; i++) 
+    {
+      const element = rawData[i];
+      let contributers = await getRequest(`${element.contributors_url}`).catch((error) => console.error(error));
+      let contributersName = [];
+      if (contributers !== undefined) {
+        for (let j = 0; j < contributers.length; j++) 
+      {
+        let name = contributers[j].login;
+        contributersName.push(name);
+      }
+      let repo = { index: i, repo: element.name, contributers: contributersName };
+      arrRepos.push(repo);
+      }
+    }
+  
+    for (let i = 0; i < arrRepos.length; i++) 
+    {
+      const repo = arrRepos[i];
+      let node = { id: repo.repo, group: 1 }; //add repo node
+      myNodes.push(node);
+      for (let j = 0; j < repo.contributers.length; j++) 
+      {
+        const contrib = repo.contributers[j];
+        let nodeC = { id: contrib, group: 2 }; //add contributer node
+        if (!myNodes.filter((e) => e.id == contrib).length > 0) 
+        {
+          myNodes.push(nodeC);
+        }
+        let linkC = { source: contrib, target: repo.repo }; 
+        myLinks.push(linkC);
+      }
+    }
+    D3_socialGraph(myNodes, myLinks);
+  }
+  
+
+
 
  /**
   * D3.js Grapher Functions
@@ -156,4 +199,79 @@ async function languageTreeMap(userReposData, user) {
   
   const scale = (num, in_min, in_max, out_min, out_max) => {
     return (num - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+  }
+
+
+
+  function D3_socialGraph(nodeData, linkData) {
+    var svg = d3.select(".socialGraph");
+    svg.selectAll("*").remove()
+    var width = svg.attr("width");
+    var height = svg.attr("height");
+    var color = d3.scaleOrdinal(d3.schemeCategory10);
+  
+    var graph = {
+      nodes: nodeData,
+      links: linkData,
+    };
+  
+    var simulation = d3
+      .forceSimulation(graph.nodes) // Force algorithm is applied to data.nodes
+      .force(
+        "link",
+        d3.forceLink(graph.links).id(function (d) {
+          return d.id;
+        }) // This provide  the id of a node
+      )
+      .force("charge", d3.forceManyBody().strength(-5)) // This adds repulsion between nodes. Play with the -400 for the repulsion strength
+      .force("center", d3.forceCenter(width / 2, height / 2)) // This force attracts nodes to the center of the svg area
+      .on("tick", ticked);
+  
+    // Initialize the links
+    var link = svg
+      .append("g")
+      .selectAll("line")
+      .data(graph.links)
+      .enter()
+      .append("line")
+      .style("stroke", "#aaa");
+  
+    // Initialize the nodes
+    var node = svg
+      .append("g")
+      .selectAll("circle")
+      .data(graph.nodes)
+      //.data(data.nodes)
+      .enter()
+      .append("circle")
+      .attr("r", 5)
+      .attr('fill', function(d,i){
+          return color(d.group);
+     })
+      .style("border", "#000");
+  
+    
+    function ticked() {
+      link
+        .attr("x1", function (d) {
+          return d.source.x;
+        })
+        .attr("y1", function (d) {
+          return d.source.y;
+        })
+        .attr("x2", function (d) {
+          return d.target.x;
+        })
+        .attr("y2", function (d) {
+          return d.target.y;
+        });
+  
+      node
+        .attr("cx", function (d) {
+          return d.x + 3;
+        })
+        .attr("cy", function (d) {
+          return d.y - 3;
+        });
+    }
   }
