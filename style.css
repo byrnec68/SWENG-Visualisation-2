@@ -13,21 +13,22 @@ html, body{
   
   .carousel-caption{
     position: absolute;
-    top: 50%;
+    top: 40%;
     transform: translateY(-50%);
   }
   
   .carousel-caption h1{
     font-size: 500%;
-    text-transform: uppercase;
+    
     text-shadow: 1px 1px 15px #000;
   }
   .carousel-indicators{
-    position: absolute;
+    
     bottom: -70px;
   }
   .jumbotron{
-    
+    background-color:white;
+    color:lightslategrey;
     border-radius: 0;
   }
   body {
